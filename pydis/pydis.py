@@ -13,6 +13,10 @@ class Pydis(metaclass=Singleton):
         self.default_timeout = default_timeout
         self._db: Dict[str, Value] = {}
 
+    @property
+    def empty(self) -> bool:
+        return not bool(self._db)
+
     def get(self, key: str) -> Union[Any, None]:
         try:
             value = self._db[key]
@@ -71,6 +75,25 @@ class Pydis(metaclass=Singleton):
         if value is None:
             return 0
         return self._db[key].ttl
+
+    def incr(self, key: str, amount: int = 1, ex: Optional[int] = None) -> int:
+        if not isinstance(amount, int):
+            raise ValueError('can not increment by type: %s' % type(amount))
+        return self._cre(key, amount, ex)
+
+    def decr(self, key: str, amount: int = 1, ex: Optional[int] = None) -> int:
+        if not isinstance(amount, int):
+            raise ValueError('can not decrement by type: %s' % type(amount))
+        return self._cre(key, -amount, ex)
+
+    def _cre(self, key: str, amount: int, ex: Union[int, None]) -> int:
+        if self.get(key) is None:  # key 过期或不存在
+            if ex is None:
+                ex = self.default_timeout
+            self._db[key] = Value(0, ex)
+        elif ex is not None:  # key 存在，但需要重设过期时间
+            self._db[key] = Value(self._db[key].value, ex)
+        return self._db[key].cre(amount)
 
     def flushdb(self):
         self._db.clear()
