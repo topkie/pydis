@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Collection, List, Optional, Union
 
 from .utils import Singleton
 from .value import NOT_EXISTS, Value
@@ -47,8 +47,8 @@ class Pydis(metaclass=Singleton):
         if ex is None:
             ex = self.default_timeout
         return self.set(key, value, ex)
-    
-    def mget(self, keys: Iterable[str]) -> List[Any]:
+
+    def mget(self, keys: Collection[str]) -> List[Any]:
         values, expired_keys = [], []
         for key in keys:
             try:
@@ -75,8 +75,8 @@ class Pydis(metaclass=Singleton):
                ex: Optional[Union[int, timedelta]] = None) -> int:
         if ex is None:
             ex = self.default_timeout
-        set_keys = set(self._db).difference(data)
-        self._db.update({key: data[key] for key in set_keys})
+        set_keys = set(data).difference(self._db)
+        self._db.update({key: Value(data[key], ex) for key in set_keys})
         return len(set_keys)
 
     def delete(self, *keys: str) -> int:
@@ -86,14 +86,15 @@ class Pydis(metaclass=Singleton):
                 return 1
             except KeyError:
                 return 0
-        return self._delete_many(*keys)
+        return self._delete_many(keys)
 
-    def _delete_many(self, keys: Iterable[str]):
+    def _delete_many(self, keys: Collection[str]):
         per_db = self._db
         alive_keys = set(per_db).difference(keys)
         self._db = {key: per_db[key] for key in alive_keys}
-        return len(alive_keys)
+        return len(per_db) - len(alive_keys)
 
+    ## TODO: 接受多个key
     def exists(self, key: str) -> bool:
         return self.get(key) is not None  # 过期或不存在都认为不存在
 
