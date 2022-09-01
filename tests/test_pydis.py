@@ -26,7 +26,6 @@ class Test(unittest.TestCase):
 
     def test_default_timeout(self):
         p = Pydis(2)
-        print(p.default_timeout)
         key1, val1, key2, val2 = 'key1', 'val1', 'key2', 'val2'
         p.set(key1, val1)
         p.default_timeout = 1
@@ -94,7 +93,6 @@ class Test(unittest.TestCase):
         p.flushdb()
         self.assertFalse(p._db)
 
-    @unittest.skip('TODO')
     def test_empty(self):
         p = Pydis()
         self.assertIs(p.empty, True)
@@ -102,6 +100,18 @@ class Test(unittest.TestCase):
         self.assertIs(p.empty, False)
         p.flushdb()
         self.assertIs(p.empty, True)
+
+    def test_incr_decr(self):
+        p = Pydis()
+        key, amount, ttl = 'key', 3, 1
+        self.assertEqual(p.incr(key, amount, ttl), amount)
+        self.assertEqual(p.incr(key), amount + 1)
+        self.assertEqual(p.get(key), amount + 1)
+        time.sleep(ttl)
+        self.assertEqual(p.decr(key), -1)
+        self.assertEqual(p.decr(key, amount, ttl), -(amount + 1))
+        time.sleep(ttl)
+        self.assertIsNone(p.get(key))
 
     def tearDown(self):
         # Pydis 为单例类，测试完成后需要恢复改动
