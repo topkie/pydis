@@ -34,7 +34,7 @@ class Pydis(metaclass=Singleton):
 
     def setnx(self, key: str, value: Any,
               ex: Optional[Union[int, timedelta]] = None) -> bool:
-        if self.get(key) is None:
+        if self.get(key) is not None:
             return False
         if ex is None:
             ex = self.default_timeout
@@ -47,16 +47,23 @@ class Pydis(metaclass=Singleton):
         except KeyError:
             return False
 
+    def _delete_many(self, keys: Iterable[str]):
+        per_db = self._db
+        alive_keys = set(per_db).difference(keys)
+        self._db = {key: per_db[key] for key in alive_keys}
+
     def exists(self, key: str) -> bool:
         return self.get(key) is not None
 
     def keys(self):
-        alive_keys = []
+        alive_keys, expired_keys = [], []
         for key, value in self._db.items():
             if value.expired:
-                self.delete(key)
+                expired_keys.append(key)
             else:
                 alive_keys.append(key)
+        if expired_keys:
+            self._delete_many(expired_keys)
         return alive_keys
 
     def ttl(self, key: str) -> int:
