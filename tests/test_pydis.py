@@ -47,13 +47,40 @@ class Test(unittest.TestCase):
         self.assertIs(p.setnx(key2, val2), True)
         self.assertEqual(p.get(key1), val1)
 
+    def test_mget(self):
+        p = Pydis()
+        keys = ['key1', 'key2', 'key3', 'key4', 'key5']
+        vals = ['val1', 'val2', 'val3', 'val4', 'val5']
+        for key, val in zip(keys, vals):
+            p.set(key, val)
+        self.assertFalse(set(p.mget(keys[:3])).difference(vals[:3]))
+
+    def test_mset(self):
+        p = Pydis()
+        self.assertIs(p.mset({'key%d' % i: 'val%d' % i for i in range(5)}), True)
+        self.assertEqual(len(p.keys()), 5)
+        self.assertIs(p.mset({'key%d' % i: 'val%d' % i for i in range(3, 8)}), True)
+        self.assertEqual(len(p.keys()), 8)
+
+    def test_msetnx(self):
+        p = Pydis()
+        data1 = {'key%d' % i: 'val%d' % i for i in range(5)}
+        data2 = {'key%d' % i: 'val%d' % i for i in range(3, 8)}
+        self.assertEqual(p.msetnx(data1), 5)
+        self.assertEqual(len(p.keys()), 5)
+        self.assertEqual(p.msetnx(data2), 3)
+        self.assertEqual(len(p.keys()), 8)
+
     def test_delete(self):
         p = Pydis()
-        key, val = 'key', 'val'
-        p.set(key, val)
-        self.assertIs(p.delete(key), True)
-        self.assertIsNone(p.get(key))
-        self.assertIs(p.delete(key), False)
+        key1, val1, key2, val2 = 'key1', 'val1', 'key2', 'val2'
+        p.set(key1, val1)
+        p.set(key2, val2)
+        self.assertEqual(p.delete(key1), 1)
+        self.assertIsNone(p.get(key1))
+        self.assertEqual(p.delete(key1), 0)
+        p.set(key1, val1)
+        self.assertEqual(p.delete(key1, key2), 2)
 
     def test_exists(self):
         p = Pydis()
