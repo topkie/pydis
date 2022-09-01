@@ -48,17 +48,20 @@ class Pydis(metaclass=Singleton):
             ex = self.default_timeout
         return self.set(key, value, ex)
 
-    def delete(self, key: str) -> bool:
-        try:
-            self._db.pop(key)
-            return True
-        except KeyError:
-            return False
+    def delete(self, *keys: str) -> int:
+        if len(keys) == 1:
+            try:
+                self._db.pop(keys[0])
+                return 1
+            except KeyError:
+                return 0
+        return self._delete_many(*keys)
 
     def _delete_many(self, keys: Iterable[str]):
         per_db = self._db
         alive_keys = set(per_db).difference(keys)
         self._db = {key: per_db[key] for key in alive_keys}
+        return len(alive_keys)
 
     def exists(self, key: str) -> bool:
         return self.get(key) is not None  # 过期或不存在都认为不存在
