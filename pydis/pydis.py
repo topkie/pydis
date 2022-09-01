@@ -90,9 +90,14 @@ class Pydis(metaclass=Singleton):
 
     def _delete_many(self, keys: Collection[str]):
         per_db = self._db
-        alive_keys = set(per_db).difference(keys)
-        self._db = {key: per_db[key] for key in alive_keys}
-        return len(per_db) - len(alive_keys)
+        if len(self._db) > len(keys) * 10:  # 少量数据
+            for key in keys:
+                per_db.pop(key)
+            return len(keys)
+        else:
+            alive_keys = set(per_db).difference(keys)
+            self._db = {key: per_db[key] for key in alive_keys}
+            return len(per_db) - len(alive_keys)
 
     ## TODO: 接受多个key
     def exists(self, key: str) -> bool:
