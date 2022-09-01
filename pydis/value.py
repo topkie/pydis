@@ -32,3 +32,7 @@ class Value:
             raise ValueError('type: %s not support incr/decr' % type(self.value))
         self.value += amount
         return self.value
+
+
+NOT_EXISTS = Value(None, 0)
+NOT_EXISTS.expire_at = float('-inf')
