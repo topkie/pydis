@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from .utils import Singleton
 from .value import NOT_EXISTS, Value
@@ -47,6 +47,37 @@ class Pydis(metaclass=Singleton):
         if ex is None:
             ex = self.default_timeout
         return self.set(key, value, ex)
+    
+    def mget(self, keys: Iterable[str]) -> List[Any]:
+        values, expired_keys = [], []
+        for key in keys:
+            try:
+                val = self._db[key]
+                if val.expired:
+                    values.append(None)
+                    expired_keys.append(key)
+                else:
+                    values.append(val.value)
+            except KeyError:
+                values.append(None)
+                continue
+        self._delete_many(expired_keys)
+        return values
+
+    def mset(self, data: Dict[str, Any],
+             ex: Optional[Union[int, timedelta]] = None) -> bool:
+        if ex is None:
+            ex = self.default_timeout
+        self._db.update({key: Value(val, ex) for key, val in data.items()})
+        return True
+
+    def msetnx(self, data: Dict[str, Any],
+               ex: Optional[Union[int, timedelta]] = None) -> int:
+        if ex is None:
+            ex = self.default_timeout
+        set_keys = set(self._db).difference(data)
+        self._db.update({key: data[key] for key in set_keys})
+        return len(set_keys)
 
     def delete(self, *keys: str) -> int:
         if len(keys) == 1:
