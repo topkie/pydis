@@ -33,6 +33,9 @@ class Value:
         self.value += amount
         return self.value
 
+    def __repr__(self) -> str:
+        return 'Value(\'' + str(self.value) + '\', ' + str(self.expire_at) + ')'
+
 
 NOT_EXISTS = Value(None, 0)
 NOT_EXISTS.expire_at = float('-inf')
