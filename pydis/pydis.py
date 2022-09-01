@@ -77,7 +77,7 @@ class Pydis(metaclass=Singleton):
     def ttl(self, key: str) -> int:
         value = self._get(key)
         if value is self.__NOT_EXISTS:
-            return 0
+            return -2
         return value.ttl
 
     def incr(self, key: str, amount: int = 1, ex: Optional[int] = None) -> int:

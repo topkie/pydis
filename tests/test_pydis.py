@@ -81,7 +81,7 @@ class Test(unittest.TestCase):
         self.assertLessEqual(p.ttl(key), ttl,
                              'alive key\'s TTL should <= %d' % ttl)
         time.sleep(1)
-        self.assertEqual(p.ttl(key), 0, 'expired key shoud return 0')
+        self.assertEqual(p.ttl(key), -2, 'expired key shoud return -2')
         p.set(key, val)
         self.assertEqual(p.ttl(key), -1, 'non-exoired key return -1')
 
