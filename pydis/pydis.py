@@ -306,3 +306,35 @@ class Pydis(metaclass=Singleton):
     def flushdb(self):
         '''清除所有存入的键'''
         self._db.clear()
+
+    def expire(self, key: str, time: Union[int, timedelta],
+               nx: bool = False, xx: bool = False) -> bool:
+        '''将 ``key`` 的失效时长设为 ``time``（秒）
+
+        ``nx``: 只有指定键不会失效时才进行操作，默认为 False
+
+        ``xx``: 只有指定键会失效时才进行操作，默认为 False
+
+        Args:
+            key (str): 指定的键
+            time (Union[int, timedelta]): 失效时间，可接受 int 和 timedelta 类型
+            nx (bool, optional): 不存在则， 默认为 False
+            xx (bool, optional): 存在则， 默认为 False
+
+        Raises:
+            TypeError: ``nx`` 和 ``xx`` 同时为 True 时引发
+
+        Returns:
+            bool: 操作是否成功
+        '''
+        if nx and xx:
+            raise TypeError('nx and xx are mutually exclusive')
+        val = self._get(key)
+        if val is NOT_EXISTS:
+            return False
+        if nx and val.expiry:
+            return False
+        if xx and not val.expiry:
+            return False
+        self._db[key] = Value(val.value, time)
+        return True

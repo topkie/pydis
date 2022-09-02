@@ -140,6 +140,20 @@ class Test(unittest.TestCase):
         time.sleep(ttl)
         self.assertIsNone(p.get(key))
 
+    def test_expire(self):
+        p = Pydis()
+        key, val = 'key', 'val'
+        with self.assertRaises(TypeError):
+            p.expire(key, 1, nx=True, xx=True)
+        self.assertIs(p.expire(key, 1), False)
+        p.set(key, val, 10)
+        self.assertIs(p.expire(key, 1, nx=True), False)
+        p.set(key, val)
+        self.assertIs(p.expire(key, 1, xx=True), False)
+
+        self.assertIs(p.expire(key, 0), True)
+        self.assertIsNone(p.get(key))
+
     def tearDown(self):
         # Pydis 为单例类，测试完成后需要恢复改动
         Pydis._Singleton__instance = None  # type: ignore

@@ -7,7 +7,11 @@ INF = float('inf')  # 无穷大
 
 
 class Value:
-    __slots__ = ['value', 'expire_at']
+    __slots__ = [
+        'value',
+        'expire_at',
+        'expiry',
+    ]
 
     def __init__(self, value: Any, ex: Union[int, timedelta, None]):
         self.value = value
@@ -15,8 +19,11 @@ class Value:
             if isinstance(ex, timedelta):
                 ex = int(ex.total_seconds())
             self.expire_at = int(datetime.now().timestamp()) + ex
+            self.expiry = True
+
         else:
             self.expire_at = INF  # 在无穷大时刻过期，即永不过期
+            self.expiry = False
 
     @property
     def expired(self) -> bool:
@@ -24,7 +31,7 @@ class Value:
 
     @property
     def ttl(self) -> int:
-        if self.expire_at is INF:
+        if not self.expiry:
             return -1  # 表示永不过期
         return int(self.expire_at - datetime.now().timestamp())
 
