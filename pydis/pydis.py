@@ -41,7 +41,6 @@ class Pydis(metaclass=Singleton):
         '''
         self._setconfig(default_timeout)
         self._db: Dict[str, Value] = {}
-        self.__NOT_EXISTS = NOT_EXISTS
 
     def _setconfig(self, default_timeout: Union[int, None]):
         self.default_timeout = default_timeout
@@ -67,10 +66,10 @@ class Pydis(metaclass=Singleton):
         try:
             value = self._db[key]
         except KeyError:
-            return self.__NOT_EXISTS
+            return NOT_EXISTS
         if value.expired:
             self._db.pop(key)
-            return self.__NOT_EXISTS
+            return NOT_EXISTS
         return value
 
     def set(self, key: str, value: Any,
@@ -254,7 +253,7 @@ class Pydis(metaclass=Singleton):
             int: 指定键的 TTL， 或特殊情况的规定值
         '''
         value = self._get(key)
-        if value is self.__NOT_EXISTS:
+        if value is NOT_EXISTS:
             return -2
         return value.ttl
 
@@ -296,7 +295,7 @@ class Pydis(metaclass=Singleton):
 
     def _cre(self, key: str, amount: int, ex: Union[int, None]) -> int:
         val = self._get(key)
-        if val is self.__NOT_EXISTS:  # key 失效或不存在
+        if val is NOT_EXISTS:  # key 失效或不存在
             if ex is None:
                 ex = self.default_timeout
             self._db[key] = Value(0, ex)

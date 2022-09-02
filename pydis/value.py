@@ -3,9 +3,10 @@
 from datetime import datetime, timedelta
 from typing import Any, Union
 
+INF = float('inf')  # 无穷大
+
 
 class Value:
-    __INF = float('inf')  # 无穷大
     __slots__ = ['value', 'expire_at']
 
     def __init__(self, value: Any, ex: Union[int, timedelta, None]):
@@ -15,7 +16,7 @@ class Value:
                 ex = int(ex.total_seconds())
             self.expire_at = int(datetime.now().timestamp()) + ex
         else:
-            self.expire_at = self.__INF  # 在无穷大时刻过期，即永不过期
+            self.expire_at = INF  # 在无穷大时刻过期，即永不过期
 
     @property
     def expired(self) -> bool:
@@ -23,7 +24,7 @@ class Value:
 
     @property
     def ttl(self) -> int:
-        if self.expire_at is self.__INF:
+        if self.expire_at is INF:
             return -1  # 表示永不过期
         return int(self.expire_at - datetime.now().timestamp())
 
