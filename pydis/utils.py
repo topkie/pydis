@@ -10,13 +10,6 @@ class Singleton(type):
             self.__instance = super().__call__(*args, **kwargs)
             return self.__instance
         else:
-            if not args:
-                return self.__instance
-            if len(args) != 1 or kwargs:
-                raise TypeError(
-                    '__init__() takes from 1 to 2 ' +
-                    'positional arguments but %d were given'
-                    % (len(args) + len(kwargs))
-                )
-            self.__instance.default_timeout = args[0]
+            if args or kwargs:
+                self.__instance._setconfig(*args, **kwargs)
             return self.__instance

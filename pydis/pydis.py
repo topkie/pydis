@@ -36,14 +36,15 @@ class Pydis(metaclass=Singleton):
     def __init__(self, default_timeout: Optional[int] = None) -> None:
         '''初始化 Pydis 对象
 
-        ``default_timeout`` 用于指定全局的失效时间，默认为 None， 表示永远有效
-
         Args:
             default_timeout (int, optional): 全局的失效时间，默认为 None， 表示永远有效
         '''
-        self.default_timeout = default_timeout
+        self._setconfig(default_timeout)
         self._db: Dict[str, Value] = {}
         self.__NOT_EXISTS = NOT_EXISTS
+
+    def _setconfig(self, default_timeout: Union[int, None]):
+        self.default_timeout = default_timeout
 
     @property
     def empty(self) -> bool:
