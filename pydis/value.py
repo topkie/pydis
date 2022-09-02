@@ -7,6 +7,13 @@ INF = float('inf')  # 无穷大
 
 
 class Value:
+    '''值的包装类
+    
+    Attributes:
+        value (Any): 存入的原始值
+        expire_at (float): 失效时刻（POSIX 时间戳形式）
+        expiry (bool): 是否会失效的标志
+    '''
     __slots__ = [
         'value',
         'expire_at',
@@ -27,6 +34,7 @@ class Value:
 
     @property
     def expired(self) -> bool:
+        '''是否失效'''
         return datetime.now().timestamp() > self.expire_at
 
     @property

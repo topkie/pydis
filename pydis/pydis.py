@@ -10,8 +10,8 @@ from .value import NOT_EXISTS, Value
 class Pydis(metaclass=Singleton):
     '''基于 dict 的内存管理工具
 
-    可通过改变 ``default_timeout`` 属性改变全局失效时间，
-    新的失效时间只对新存入的键有效，改变前存入的键不受影响
+    可通过改变 ``default_timeout`` 属性改变全局失效时长，
+    新的失效时长只对新存入的键有效，改变前存入的键不受影响
 
     采用单例模式，因此在一个进程中只存在唯一的 Pydis 对象。
     尽管如此，使用初始化传参的方法仍然能够改变 ``default_timeout``, eg:
@@ -30,14 +30,14 @@ class Pydis(metaclass=Singleton):
         5
 
     Attributes:
-        default_timeout (int): 全局的失效时间，默认为 None， 表示永远有效
+        default_timeout (int): 全局的失效时长，默认为 None， 表示永远有效
     '''
 
     def __init__(self, default_timeout: Optional[int] = None) -> None:
         '''初始化 Pydis 对象
 
         Args:
-            default_timeout (int, optional): 全局的失效时间，默认为 None， 表示永远有效
+            default_timeout (int, optional): 全局的失效时长，默认为 None， 表示永远有效
         '''
         self._setconfig(default_timeout)
         self._db: Dict[str, Value] = {}
@@ -76,7 +76,7 @@ class Pydis(metaclass=Singleton):
             ex: Optional[Union[int, timedelta]] = None) -> bool:
         '''将 ``key`` 的值设为 ``value``，``value`` 不能为 None
 
-        ex 用于指定失效时间，可接受 int 和 timedelta 类型，
+        ex 用于指定失效时长，可接受 int 和 timedelta 类型，
         默认为 None 表示永远有效
 
         本操作不会失败，因此返回值恒为 True
@@ -84,7 +84,7 @@ class Pydis(metaclass=Singleton):
         Args:
             key (str): 指定的 key
             value (Any): 待设定的值
-            ex (Union[int, timedelta], optional): 失效时间. 默认为 None
+            ex (Union[int, timedelta], optional): 失效时长. 默认为 None
 
         Raises:
             ValueError: 传入的 ``value`` 为 None 时引发
@@ -106,7 +106,7 @@ class Pydis(metaclass=Singleton):
         Args:
             key (str): 待设定的键
             value (Any): 待设定的值
-            ex (Union[int, timedelta], optional): 失效时间. 默认为 None
+            ex (Union[int, timedelta], optional): 失效时长. 默认为 None
 
         Returns:
             bool: 操作是否成功
@@ -150,13 +150,13 @@ class Pydis(metaclass=Singleton):
 
         ``data`` 需为 dict 类型。
 
-        ``ex`` 用于指定失效时间，可接受 int 和 timedelta 类型
+        ``ex`` 用于指定失效时长，可接受 int 和 timedelta 类型
 
         本操作不会失败，因此返回值恒为 True
 
         Args:
             data (Dict[str, Any]): 待存入的键值对
-            ex (Union[int, timedelta], optional): 失效时间. 默认为 None
+            ex (Union[int, timedelta], optional): 失效时长. 默认为 None
 
         Returns:
             bool: True
@@ -175,7 +175,7 @@ class Pydis(metaclass=Singleton):
 
         Args:
             data (Dict[str, Any]): 待存储的键值对
-            ex (int | timedelta, optional): 失效时间. 默认为 None.
+            ex (int | timedelta, optional): 失效时长. 默认为 None.
 
         Returns:
             int: 成功存储的键值对的数量
@@ -263,7 +263,7 @@ class Pydis(metaclass=Singleton):
         Args:
             key (str): 指定的键
             amount (int, optional): 增加的值，默认为 1
-            ex (int, optional): 失效时间，默认为 None，表示永远有效
+            ex (int, optional): 失效时长，默认为 None，表示永远有效
 
         Raises:
             ValueError: 指定键的值非 int 类型时引发
@@ -281,7 +281,7 @@ class Pydis(metaclass=Singleton):
         Args:
             key (str): 指定的键
             amount (int, optional): 减少的值，默认为 1
-            ex (int, optional): 失效时间，默认为 None，表示永远有效
+            ex (int, optional): 失效时长，默认为 None，表示永远有效
 
         Raises:
             ValueError: 指定键的值非 int 类型时引发
@@ -299,7 +299,7 @@ class Pydis(metaclass=Singleton):
             if ex is None:
                 ex = self.default_timeout
             self._db[key] = Value(0, ex)
-        elif ex is not None:  # key 存在，但需要重设失效时间
+        elif ex is not None:  # key 存在，但需要重设失效时长
             self._db[key] = Value(val.value, ex)
         return self._db[key].cre(amount)
 
@@ -317,7 +317,7 @@ class Pydis(metaclass=Singleton):
 
         Args:
             key (str): 指定的键
-            time (Union[int, timedelta]): 失效时间，可接受 int 和 timedelta 类型
+            time (Union[int, timedelta]): 失效时长，可接受 int 和 timedelta 类型
             nx (bool, optional): 不存在则， 默认为 False
             xx (bool, optional): 存在则， 默认为 False
 
