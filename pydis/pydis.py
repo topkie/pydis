@@ -30,19 +30,19 @@ class Pydis(metaclass=Singleton):
         5
 
     Attributes:
-        default_timeout (int): 全局的失效时长，默认为 None， 表示永远有效
+        default_timeout (float): 全局的失效时长，默认为 None， 表示永远有效
     '''
 
-    def __init__(self, default_timeout: Optional[int] = None) -> None:
+    def __init__(self, default_timeout: Optional[float] = None) -> None:
         '''初始化 Pydis 对象
 
         Args:
-            default_timeout (int, optional): 全局的失效时长，默认为 None， 表示永远有效
+            default_timeout (float, optional): 全局的失效时长，默认为 None， 表示永远有效
         '''
         self._setconfig(default_timeout)
         self._db: Dict[str, Value] = {}
 
-    def _setconfig(self, default_timeout: Union[int, None]):
+    def _setconfig(self, default_timeout: Union[float, None]):
         self.default_timeout = default_timeout
 
     @property
@@ -73,10 +73,10 @@ class Pydis(metaclass=Singleton):
         return value
 
     def set(self, key: str, value: Any,
-            ex: Optional[Union[int, timedelta]] = None) -> bool:
+            ex: Optional[Union[float, timedelta]] = None) -> bool:
         '''将 ``key`` 的值设为 ``value``，``value`` 不能为 None
 
-        ex 用于指定失效时长，可接受 int 和 timedelta 类型，
+        ex 用于指定失效时长，可接受 int、float 和 timedelta 类型，
         默认为 None 表示永远有效
 
         本操作不会失败，因此返回值恒为 True
@@ -100,18 +100,18 @@ class Pydis(metaclass=Singleton):
         return True
 
     def setnx(self, key: str, value: Any,
-              ex: Optional[Union[int, timedelta]] = None) -> bool:
+              ex: Optional[Union[float, timedelta]] = None) -> bool:
         '''当 ``key`` 不存在时，将 ``key`` 的值设为 ``value``
 
         Args:
             key (str): 待设定的键
             value (Any): 待设定的值
-            ex (Union[int, timedelta], optional): 失效时长. 默认为 None
+            ex (Union[float, timedelta], optional): 失效时长. 默认为 None
 
         Returns:
             bool: 操作是否成功
         '''
-        if self.get(key) is not None:
+        if self._get(key) is not NOT_EXISTS:
             return False
         if ex is None:
             ex = self.default_timeout
@@ -145,12 +145,12 @@ class Pydis(metaclass=Singleton):
         return values
 
     def mset(self, data: Dict[str, Any],
-             ex: Optional[Union[int, timedelta]] = None) -> bool:
+             ex: Optional[Union[float, timedelta]] = None) -> bool:
         '''存入通过 ``data`` 指定的键值对。
 
         ``data`` 需为 dict 类型。
 
-        ``ex`` 用于指定失效时长，可接受 int 和 timedelta 类型
+        ``ex`` 用于指定失效时长，可接受 int、float 和 timedelta 类型
 
         本操作不会失败，因此返回值恒为 True
 
@@ -167,7 +167,7 @@ class Pydis(metaclass=Singleton):
         return True
 
     def msetnx(self, data: Dict[str, Any],
-               ex: Optional[Union[int, timedelta]] = None) -> int:
+               ex: Optional[Union[float, timedelta]] = None) -> int:
         '''存入通过 dict 指定的多个键值对
 
         与 redis 不同的是，如果传入本方法的部分 key 已经存在，
@@ -175,7 +175,7 @@ class Pydis(metaclass=Singleton):
 
         Args:
             data (Dict[str, Any]): 待存储的键值对
-            ex (int | timedelta, optional): 失效时长. 默认为 None.
+            ex (Union[float, timedelta], optional): 失效时长. 默认为 None.
 
         Returns:
             int: 成功存储的键值对的数量
@@ -257,13 +257,13 @@ class Pydis(metaclass=Singleton):
             return -2
         return value.ttl
 
-    def incr(self, key: str, amount: int = 1, ex: Optional[int] = None) -> int:
+    def incr(self, key: str, amount: int = 1, ex: Optional[float] = None) -> int:
         '''自增，仅在 ``key`` 的值类型为 int 时有效
 
         Args:
             key (str): 指定的键
             amount (int, optional): 增加的值，默认为 1
-            ex (int, optional): 失效时长，默认为 None，表示永远有效
+            ex (float, optional): 失效时长，默认为 None，表示永远有效
 
         Raises:
             ValueError: 指定键的值非 int 类型时引发
@@ -275,13 +275,13 @@ class Pydis(metaclass=Singleton):
             raise ValueError('can not increment by type: %s' % type(amount))
         return self._cre(key, amount, ex)
 
-    def decr(self, key: str, amount: int = 1, ex: Optional[int] = None) -> int:
+    def decr(self, key: str, amount: int = 1, ex: Optional[float] = None) -> int:
         '''自减，仅在 ``key`` 的值类型为 int 时有效
 
         Args:
             key (str): 指定的键
             amount (int, optional): 减少的值，默认为 1
-            ex (int, optional): 失效时长，默认为 None，表示永远有效
+            ex (float, optional): 失效时长，默认为 None，表示永远有效
 
         Raises:
             ValueError: 指定键的值非 int 类型时引发
@@ -293,7 +293,7 @@ class Pydis(metaclass=Singleton):
             raise ValueError('can not decrement by type: %s' % type(amount))
         return self._cre(key, -amount, ex)
 
-    def _cre(self, key: str, amount: int, ex: Union[int, None]) -> int:
+    def _cre(self, key: str, amount: int, ex: Union[float, None]) -> int:
         val = self._get(key)
         if val is NOT_EXISTS:  # key 失效或不存在
             if ex is None:

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
+from threading import Lock
 from typing import Any, Union
 
 INF = float('inf')  # 无穷大
@@ -8,10 +9,10 @@ INF = float('inf')  # 无穷大
 
 class Value:
     '''值的包装类
-    
+
     Attributes:
         value (Any): 存入的原始值
-        expire_at (float): 失效时刻（POSIX 时间戳形式）
+        expire_at (timedelta): 失效时刻，以 datetime 保存
         expiry (bool): 是否会失效的标志
     '''
     __slots__ = [
@@ -20,28 +21,28 @@ class Value:
         'expiry',
     ]
 
-    def __init__(self, value: Any, ex: Union[int, timedelta, None]):
+    def __init__(self, value: Any, ex: Union[float, timedelta, None]):
         self.value = value
         if ex is not None:
-            if isinstance(ex, timedelta):
-                ex = int(ex.total_seconds())
-            self.expire_at = int(datetime.now().timestamp()) + ex
+            if isinstance(ex, (int, float)):
+                ex = timedelta(seconds=ex)
+            self.expire_at = datetime.now() + ex
             self.expiry = True
 
         else:
-            self.expire_at = INF  # 在无穷大时刻过期，即永不过期
+            self.expire_at = datetime.max
             self.expiry = False
 
     @property
     def expired(self) -> bool:
         '''是否失效'''
-        return datetime.now().timestamp() > self.expire_at
+        return datetime.now() >= self.expire_at
 
     @property
     def ttl(self) -> int:
         if not self.expiry:
             return -1  # 表示永不过期
-        return int(self.expire_at - datetime.now().timestamp())
+        return int((self.expire_at - datetime.now()).total_seconds())
 
     def cre(self, amount) -> int:
         if not isinstance(self.value, int):
@@ -54,4 +55,4 @@ class Value:
 
 
 NOT_EXISTS = Value(None, 0)
-NOT_EXISTS.expire_at = float('-inf')
+NOT_EXISTS.expire_at = datetime.min
