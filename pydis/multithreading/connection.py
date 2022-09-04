@@ -5,6 +5,7 @@ from threading import Event
 from typing import Any, Optional, Tuple, Union
 
 from pydis.exceptions import ReceiveTimeout
+from .typing import MessageT
 
 
 class Connection:
@@ -22,27 +23,15 @@ class Connection:
         self.q_send, self.q_recv = q_send, q_recv
         self._closed = close_evt
 
-    def send(
-        self,
-        data: Tuple[str, Union[str, None], Union[Any, None]]
-    ):
+    def send(self, data: MessageT):
         self.q_send.put(data)
 
     def recv(
-        self,
-        block=True,
-        timeout: Optional[float] = None
-    ) -> Tuple[str, Union[str, None], Union[Any, None]]:
+        self, block=True, timeout: Optional[float] = None
+    ) -> MessageT:
         '''从连接中接收数据
 
         如果设定了超时，超时时会抛出 Empty
-
-        Args:
-            block (bool, optional): _description_. Defaults to True.
-            timeout (Optional[float], optional): _description_. Defaults to None.
-
-        Returns:
-            Tuple[str, Union[str, None], Union[Any, None]]: _description_
         '''
         try:
             return self.q_recv.get(block, timeout)
