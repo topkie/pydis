@@ -257,7 +257,12 @@ class Pydis(metaclass=Singleton):
             return -2
         return value.ttl
 
-    def incr(self, key: str, amount: int = 1, ex: Optional[float] = None) -> int:
+    def incr(
+        self,
+        key: str,
+        amount: int = 1,
+        ex: Optional[Union[float, timedelta]] = None
+    ) -> int:
         '''自增，仅在 ``key`` 的值类型为 int 时有效
 
         Args:
@@ -275,7 +280,12 @@ class Pydis(metaclass=Singleton):
             raise ValueError('can not increment by type: %s' % type(amount))
         return self._cre(key, amount, ex)
 
-    def decr(self, key: str, amount: int = 1, ex: Optional[float] = None) -> int:
+    def decr(
+        self,
+        key: str,
+        amount: int = 1,
+        ex: Optional[Union[float, timedelta]] = None
+    ) -> int:
         '''自减，仅在 ``key`` 的值类型为 int 时有效
 
         Args:
@@ -293,7 +303,12 @@ class Pydis(metaclass=Singleton):
             raise ValueError('can not decrement by type: %s' % type(amount))
         return self._cre(key, -amount, ex)
 
-    def _cre(self, key: str, amount: int, ex: Union[float, None]) -> int:
+    def _cre(
+        self,
+        key: str,
+        amount: int,
+        ex: Union[float, timedelta, None]
+    ) -> int:
         val = self._get(key)
         if val is NOT_EXISTS:  # key 失效或不存在
             if ex is None:
