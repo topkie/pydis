@@ -2,9 +2,9 @@
 
 from queue import Empty, Queue
 from threading import Event
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
-from pydis.exceptions import ReceiveTimeout
+from ..exceptions import ConnectionClosedError, ReceiveTimeout
 from .typing import MessageT
 
 
@@ -24,6 +24,13 @@ class Connection:
         self._closed = close_evt
 
     def send(self, data: MessageT):
+        '''发送数据
+        
+        当连接被关闭时，引发 ConnectionClosed 错误。
+        这个错误在 pydis.exceptions 中定义
+        '''
+        if self.closed:
+            raise ConnectionClosedError('connection has been closed')
         self.q_send.put(data)
 
     def recv(
@@ -31,8 +38,14 @@ class Connection:
     ) -> MessageT:
         '''从连接中接收数据
 
-        如果设定了超时，超时时会抛出 Empty
+        如果设定了超时，超时时会抛出 ReceiveTimeout
+        
+        当连接被关闭时，抛出 ConnectionClosed
+        
+        这些错误在 pydis.exceptions 中定义
         '''
+        if self.closed:
+            raise ConnectionClosedError('connection has been closed')
         try:
             ret = self.q_recv.get(block, timeout)
             self.q_recv.task_done()
