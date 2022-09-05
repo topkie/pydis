@@ -1,7 +1,7 @@
 
 from typing import Any, Tuple, Union
 
-from .utils import message
+from .message import message
 
 RequestT = Tuple[message, str, Union[Any, None]]
 ResponseT = Tuple[message, Union[Any, None]]
