@@ -34,7 +34,9 @@ class Connection:
         如果设定了超时，超时时会抛出 Empty
         '''
         try:
-            return self.q_recv.get(block, timeout)
+            ret = self.q_recv.get(block, timeout)
+            self.q_recv.task_done()
+            return ret
         except Empty:
             raise ReceiveTimeout
 
