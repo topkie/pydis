@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta
-from typing import Any, Collection, Dict, List, Optional, Union
+from typing import Any, Collection, Dict, List, Optional, Set, Union
 
 from .utils import Singleton
 from .value import NOT_EXISTS, Value
@@ -41,13 +41,14 @@ class Pydis(metaclass=Singleton):
         '''
         self._setconfig(default_timeout)
         self._db: Dict[str, Value] = {}
+        self._expiry_key: Set[str] = set()
 
     def _setconfig(self, default_timeout: Union[float, None]):
         self.default_timeout = default_timeout
 
     @property
     def empty(self) -> bool:
-        return not bool(self._db)
+        return not self._db
 
     def get(self, key: str) -> Union[Any, None]:
         '''获取指定 key 的值
@@ -96,6 +97,8 @@ class Pydis(metaclass=Singleton):
             raise ValueError('`None` is special to pydis, can not use it as a value')
         if ex is None:
             ex = self.default_timeout
+        else:
+            self._expiry_key.add(key)
         self._db[key] = Value(value, ex)
         return True
 
@@ -115,6 +118,8 @@ class Pydis(metaclass=Singleton):
             return False
         if ex is None:
             ex = self.default_timeout
+        else:
+            self._expiry_key.add(key)
         return self.set(key, value, ex)
 
     def mget(self, keys: Collection[str]) -> List[Any]:
@@ -163,6 +168,8 @@ class Pydis(metaclass=Singleton):
         '''
         if ex is None:
             ex = self.default_timeout
+        else:
+            self._expiry_key.update(data)
         self._db.update({key: Value(val, ex) for key, val in data.items()})
         return True
 
@@ -180,35 +187,44 @@ class Pydis(metaclass=Singleton):
         Returns:
             int: 成功存储的键值对的数量
         '''
+        set_keys = set(data).difference(self._db)
         if ex is None:
             ex = self.default_timeout
-        set_keys = set(data).difference(self._db)
+        else:
+            self._expiry_key.update(data)
         self._db.update({key: Value(data[key], ex) for key in set_keys})
         return len(set_keys)
 
-    def delete(self, *keys: str) -> int:
+    def delete(self, key, *keys: str) -> int:
         '''删除一个或多个通过 ``keys`` 指定的键
 
         Returns:
             int: 成功操作的数量
         '''
-        if len(keys) == 1:
-            try:
-                self._db.pop(keys[0])
-                return 1
-            except KeyError:
-                return 0
-        return self._delete_many(keys)
+        count = 0
+        try:
+            self._db.pop(key)
+            self._expiry_key.discard(key)
+            count += 1
+        except KeyError:
+            pass
+        if keys:
+            count += self._delete_many(keys)
+        return count
 
     def _delete_many(self, keys: Collection[str]):
+        if not keys:
+            return 0
         per_db = self._db
         if len(self._db) > len(keys) * 10:  # 少量数据
             for key in keys:
                 per_db.pop(key)
+                self._expiry_key.discard(key)
             return len(keys)
         else:
             alive_keys = set(per_db).difference(keys)
             self._db = {key: per_db[key] for key in alive_keys}
+            self._expiry_key.difference_update(keys)
             return len(per_db) - len(alive_keys)
 
     ## TODO: 接受多个key
@@ -298,8 +314,11 @@ class Pydis(metaclass=Singleton):
         if val is NOT_EXISTS:  # key 失效或不存在
             if ex is None:
                 ex = self.default_timeout
+            else:
+                self._expiry_key.add(key)
             self._db[key] = Value(0, ex)
         elif ex is not None:  # key 存在，但需要重设失效时长
+            self._expiry_key.add(key)
             self._db[key] = Value(val.value, ex)
         return self._db[key].cre(amount)
 
@@ -336,5 +355,6 @@ class Pydis(metaclass=Singleton):
             return False
         if xx and not val.expiry:
             return False
+        self._expiry_key.add(key)
         self._db[key] = Value(val.value, time)
         return True
