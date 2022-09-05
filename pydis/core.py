@@ -6,45 +6,24 @@ from typing import Any, Collection, Dict, List, Optional, Set, Union
 from .utils import Singleton
 from .value import NOT_EXISTS, Value
 
+default_timeout = None
+'''
+单线程下的全局失效时长，默认为 None，表示永远不会失效
 
-class Pydis(metaclass=Singleton):
+通过对 ``pydis.core.default_timeout`` 赋值改变它
+'''
+
+
+class Core(metaclass=Singleton):
     '''基于 dict 的内存管理工具
 
-    可通过改变 ``default_timeout`` 属性改变全局失效时长，
+    可通过改变 ``pydis.core.default_timeout`` 改变全局失效时长，
     新的失效时长只对新存入的键有效，改变前存入的键不受影响
-
-    采用单例模式，因此在一个进程中只存在唯一的 Pydis 对象。
-    尽管如此，使用初始化传参的方法仍然能够改变 ``default_timeout``, eg:
-        >>> p = Pydis()
-        >>> p.default_timeout
-        None
-        >>> p = Pydis(5)
-        >>> p.default_timeout
-        5
-    也可以对 ``default_timeout`` 赋值直接改变，eg:
-        >>> p = Pydis()
-        >>> p.default_timeout
-        None
-        >>> p.default_timeout = 5
-        >>> p.default_timeout
-        5
-
-    Attributes:
-        default_timeout (float): 全局的失效时长，默认为 None， 表示永远有效
     '''
 
-    def __init__(self, default_timeout: Optional[float] = None) -> None:
-        '''初始化 Pydis 对象
-
-        Args:
-            default_timeout (float, optional): 全局的失效时长，默认为 None， 表示永远有效
-        '''
-        self._setconfig(default_timeout)
+    def __init__(self) -> None:
         self._db: Dict[str, Value] = {}
         self._expiry_key: Set[str] = set()
-
-    def _setconfig(self, default_timeout: Union[float, None]):
-        self.default_timeout = default_timeout
 
     @property
     def empty(self) -> bool:
@@ -96,7 +75,7 @@ class Pydis(metaclass=Singleton):
         if value is None:
             raise ValueError('`None` is special to pydis, can not use it as a value')
         if ex is None:
-            ex = self.default_timeout
+            ex = default_timeout
         else:
             self._expiry_key.add(key)
         self._db[key] = Value(value, ex)
@@ -117,7 +96,7 @@ class Pydis(metaclass=Singleton):
         if self._get(key) is not NOT_EXISTS:
             return False
         if ex is None:
-            ex = self.default_timeout
+            ex = default_timeout
         else:
             self._expiry_key.add(key)
         return self.set(key, value, ex)
@@ -167,7 +146,7 @@ class Pydis(metaclass=Singleton):
             bool: True
         '''
         if ex is None:
-            ex = self.default_timeout
+            ex = default_timeout
         else:
             self._expiry_key.update(data)
         self._db.update({key: Value(val, ex) for key, val in data.items()})
@@ -189,7 +168,7 @@ class Pydis(metaclass=Singleton):
         '''
         set_keys = set(data).difference(self._db)
         if ex is None:
-            ex = self.default_timeout
+            ex = default_timeout
         else:
             self._expiry_key.update(data)
         self._db.update({key: Value(data[key], ex) for key in set_keys})
@@ -313,7 +292,7 @@ class Pydis(metaclass=Singleton):
         val = self._get(key)
         if val is NOT_EXISTS:  # key 失效或不存在
             if ex is None:
-                ex = self.default_timeout
+                ex = default_timeout
             else:
                 self._expiry_key.add(key)
             self._db[key] = Value(0, ex)
@@ -341,13 +320,13 @@ class Pydis(metaclass=Singleton):
             xx (bool, optional): 存在则， 默认为 False
 
         Raises:
-            TypeError: ``nx`` 和 ``xx`` 同时为 True 时引发
+            ValueError: ``nx`` 和 ``xx`` 同时为 True 时引发
 
         Returns:
             bool: 操作是否成功
         '''
         if nx and xx:
-            raise TypeError('nx and xx are mutually exclusive')
+            raise ValueError('nx and xx are mutually exclusive')
         val = self._get(key)
         if val is NOT_EXISTS:
             return False
