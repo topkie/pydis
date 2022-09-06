@@ -250,7 +250,7 @@ class Core(metaclass=Singleton):
         value = self._get(key)
         if value is NOT_EXISTS:
             return -2
-        return value.ttl
+        return int(value.ttl)
 
     def incr(self, key: str, amount: int = 1, ex: Optional[float] = None) -> int:
         '''自增，仅在 ``key`` 的值类型为 int 时有效
