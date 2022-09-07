@@ -58,13 +58,17 @@ class TestConnection(TestCase):
             while not stop.is_set():
                 can_read, *_ = select.select(conns, [], [], 0.1)
                 for r in can_read:
-                    r.send(r.recv())
+                    r.send((r, r.recv()))
         t = threading.Thread(target=consumer, args=([c2, c4], stop), daemon=True)
         t.start()
         data = 'test'
         c1.send(data)  # type: ignore
-        self.assertEqual(c1.recv(), 'test')
+        c, ret = c1.recv()  # type: ignore
+        self.assertIs(c, c2)
+        self.assertEqual(ret, 'test')
         c3.send(data)  # type: ignore
-        self.assertEqual(c3.recv(), 'test')
+        c, ret = c3.recv()  # type: ignore
+        self.assertIs(c, c4)
+        self.assertEqual(ret, 'test')
         stop.set()
         t.join()
