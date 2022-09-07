@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from multiprocessing import Event
 from unittest import TestCase
 
 from pydis.exceptions import ConnectionClosedError, ReceiveTimeout
@@ -45,3 +46,25 @@ class TestConnection(TestCase):
             conn1.send('test')  # type: ignore
         with self.assertRaises(ConnectionClosedError):
             conn1.recv()
+
+    def test_select_support(self):
+        import select
+        import threading
+        c1, c2 = open_connection()
+        c3, c4 = open_connection()
+        stop = threading.Event()
+
+        def consumer(conns, stop):
+            while not stop.is_set():
+                can_read, *_ = select.select(conns, [], [], 0.1)
+                for r in can_read:
+                    r.send(r.recv())
+        t = threading.Thread(target=consumer, args=([c2, c4], stop), daemon=True)
+        t.start()
+        data = 'test'
+        c1.send(data)  # type: ignore
+        self.assertEqual(c1.recv(), 'test')
+        c3.send(data)  # type: ignore
+        self.assertEqual(c3.recv(), 'test')
+        stop.set()
+        t.join()
