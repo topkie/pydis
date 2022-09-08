@@ -20,6 +20,9 @@ class FakeServer(metaclass=Singleton):
 
 @mock.patch('pydis.multithreading.client.Server', FakeServer)
 class TestClient(TestCase):
+    def setUp(self):
+        FakeServer._Singleton__instance = None  # type: ignore
+
     def test_close(self):
         c = Client()
         c.close()
@@ -59,7 +62,12 @@ class TestFunction(TestCase):
         mock_func.assert_called_with(self, 'fake', fake='fake')
 
 
+@mock.patch('pydis.multithreading.client.Server', FakeServer)
 class TestPydisClient(TestCase):
+
+    def setUp(self):
+        FakeServer._Singleton__instance = None  # type: ignore
+
     @mock.patch.object(PydisClient, 'execute_command')
     def test_set_arguments(self, execute_command):
         from pydis.multithreading.message import message
