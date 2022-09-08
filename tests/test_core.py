@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
 import time
 import unittest
+from datetime import timedelta
 
+import pydis
 from pydis import Pydis
 
 
@@ -25,10 +26,11 @@ class Test(unittest.TestCase):
         self.assertIsNone(p.get(key))
 
     def test_default_timeout(self):
-        p = Pydis(2)
+        p = Pydis()
+        pydis.core.default_timeout = 2
         key1, val1, key2, val2 = 'key1', 'val1', 'key2', 'val2'
         p.set(key1, val1)
-        p.default_timeout = 1
+        pydis.core.default_timeout = 1
         p.set(key2, val2)
         self.assertEqual(p.get(key1), val1)
         self.assertEqual(p.get(key2), val2)
@@ -38,6 +40,7 @@ class Test(unittest.TestCase):
         time.sleep(1)
         self.assertIsNone(p.get(key1))
         self.assertIsNone(p.get(key2))
+        pydis.core.default_timeout = None
 
     def test_setnx(self):
         p = Pydis()
@@ -143,7 +146,7 @@ class Test(unittest.TestCase):
     def test_expire(self):
         p = Pydis()
         key, val = 'key', 'val'
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             p.expire(key, 1, nx=True, xx=True)
         self.assertIs(p.expire(key, 1), False)
         p.set(key, val, 10)

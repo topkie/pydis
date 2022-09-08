@@ -39,10 +39,10 @@ class Value:
         return datetime.now() >= self.expire_at
 
     @property
-    def ttl(self) -> int:
+    def ttl(self) -> float:
         if not self.expiry:
             return -1  # 表示永不过期
-        return int((self.expire_at - datetime.now()).total_seconds())
+        return (self.expire_at - datetime.now()).total_seconds()
 
     def cre(self, amount) -> int:
         if not isinstance(self.value, int):
