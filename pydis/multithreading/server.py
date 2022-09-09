@@ -23,7 +23,23 @@ class Set(set, Generic[T]):
         self.not_empty = Condition(self.mutex)
         super().__init__(*args, **kwargs)
 
-    def wait(self, block=True, timeout=None):
+    def wait(self, block=True, timeout=None) -> bool:
+        '''当集合为空时，等待元素被放入集合
+
+        设置了 ``timeout`` 后，如果超时后集合仍为空，返回 False
+
+        如果 ``block`` 被设为 True，``timeout`` 将被忽略
+
+        Args:
+            block (bool, optional): 是否阻塞，默认为 True. Defaults to True.
+            timeout (Union[int, float], optional): 超时时间，默认为 None，表示永远等待
+
+        Raises:
+            ValueError: 当 ``timeout`` 为负值时引发
+
+        Returns:
+            bool: 集合是否为空
+        '''
         with self.not_empty:
             if not block:
                 if not self._qsize():
@@ -51,6 +67,7 @@ class Set(set, Generic[T]):
         return len(self)
 
     def remove(self, __element: T):
+        '''从集合中移除给定元素，如果元素不存在，不会有任何影响'''
         with self.not_empty:
             return self.discard(__element)
 
@@ -76,7 +93,7 @@ class Server(Core):
 
     def __init__(self):
         self.stat_expired_stale_perc = 0
-        '''估计的失效键占比'''
+        '''估计的失效键比例，去 % 的整数值'''
         self.last_time_cycle = 0
         '''上次执行清理的时刻'''
         super().__init__()
@@ -210,7 +227,7 @@ class Server(Core):
         # 计算方式：
         # 假设本次占比为 x，则历次占比为 (1-x)，本次比例 a, 历次比例 b,
         # 则有 ax + b(1-x) >= 10 => x >= (10-b)/(a-b)，
-        # 令 a=50, b=0，可解 x>=0.2
+        # 令 a=0.5, b=0，可解 x>=0.2
         if total_sample:
             self.stat_expired_stale_perc = (
                 total_expired / total_sample * 20
@@ -221,12 +238,14 @@ class Server(Core):
 
     @classmethod
     def stop(cls):
+        '''停止服务线程'''
         with cls._mutex:
             cls._stop_evt.set()
             cls._started = False
 
     @classmethod
     def stopped(cls):
+        '''返回服务线程是否被关闭'''
         return cls._stop_evt.is_set()
 
     def _close_connections(self):
