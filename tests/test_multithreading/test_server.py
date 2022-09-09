@@ -346,30 +346,6 @@ class TestServer(TestCase):
             self.assertEqual(kind, message.ERROR)
             self.assertTrue(isinstance(err, TypeError))
 
-    @patch('pydis.multithreading.server.time')
-    def test_active_expire_cycle_with_no_expiry_key(self, time):
-        Server().active_expire_cycle()
-        time.assert_not_called()
-
-    @patch('pydis.multithreading.server.len')
-    def test_active_expire_cycle_stale_accepted(self, len):
-        s = Server()
-        s._expiry_key = {'fake_key'}
-        s.stat_expired_stale_perc = 0
-        # s.last_time_cycle = monotonic()
-        Server().active_expire_cycle()
-        len.assert_not_called()
-
-    @patch('pydis.multithreading.server.len')
-    def test_active_expire_cycle_in_short_time(self, len):
-        from time import monotonic
-        s = Server()
-        s._expiry_key = {'fake_key'}
-        s.stat_expired_stale_perc = 100
-        s.last_time_cycle = monotonic()
-        Server().active_expire_cycle()
-        len.assert_not_called()
-
     def test_stop(self):
         Server.stop()
         self.assertIs(Server.stopped(), True)
