@@ -107,15 +107,16 @@ class Server(Core):
             cls._connections.add(conn)
             return ret
 
-    def start(self):
-        if not self._started:
-            with self._mutex:
-                if not self._started:
-                    self._stop_evt.clear()
-                    server = Thread(target=self._run_server)
+    @classmethod
+    def start(cls):
+        if not cls._started:
+            with cls._mutex:
+                if not cls._started:
+                    cls._stop_evt.clear()
+                    server = Thread(target=cls()._run_server)
                     server.daemon = True
                     server.start()
-                    self._started = True
+                    cls._started = True
 
     def _run_server(self):
         try:
@@ -177,16 +178,11 @@ class Server(Core):
         db = self._db
         expiry_keys = self._expiry_key
 
-        # 没有关联了失效时长的键，所有的键
-        # 都不会过期，因此无需清理
-        if not expiry_keys:
-            return
-
         start = time()
-        # 当预估的失效键占比可接受，或者没有
+        # 当预估的失效键占比可接受，并且没有
         # 到清理周期时，不会执行清理
-        if (start - last_time_cycle < MAX_TIME_SPAN or
-                stat_expired_stale_perc < ACCEPTABLE_STALE):
+        if start - last_time_cycle < MAX_TIME_SPAN and \
+                0 < stat_expired_stale_perc < ACCEPTABLE_STALE:
             return
 
         # 本次每轮需要抽查的键的数量
@@ -200,25 +196,29 @@ class Server(Core):
         total_expired = total_sample = 0
         expired = sample = 0
 
-        while not timelimit_exit and (
-            sample == 0 or  # 第一次抽查
-            100 * expired / sample > ACCEPTABLE_STALE  # 本轮失效的键太多
-        ):
-            expired = sample = 0
+        # 只有存在关联了失效时长的键，才需要清理
+        if num:
+            while not timelimit_exit and (
+                sample == 0 or  # 第一次抽查
+                100 * expired / sample > ACCEPTABLE_STALE  # 本轮失效的键太多
+            ):
+                expired = sample = 0
 
-            sample_keys = random_sample(expiry_keys, num)
-            while time() - start < timelimit:
-                key = sample_keys.pop()
-                if db[key].expired:
-                    db.pop(key)
-                    expiry_keys.discard(key)
-                    expired += 1
-                sample += 1
-            else:
-                timelimit_exit = True
+                sample_keys = random_sample(expiry_keys, num)
+                while time() - start < timelimit:
+                    key = sample_keys.pop()
+                    if db[key].expired:
+                        db.pop(key)
+                        expiry_keys.discard(key)
+                        expired += 1
+                    sample += 1
+                    if not sample_keys:
+                        break
+                else:
+                    timelimit_exit = True
 
-            total_expired += expired
-            total_sample += sample
+                total_expired += expired
+                total_sample += sample
 
         # 评估失效键比例，本次失效占比 20%，历次占比 80%。当某时刻
         # 有大量的键失效导致清理过程因为超时而退出时，评估值将会增大，
@@ -229,10 +229,11 @@ class Server(Core):
         # 则有 ax + b(1-x) >= 10 => x >= (10-b)/(a-b)，
         # 令 a=0.5, b=0，可解 x>=0.2
         if total_sample:
-            self.stat_expired_stale_perc = (
-                total_expired / total_sample * 20
-                + stat_expired_stale_perc * 0.80
-            )
+            current_perc = total_expired / total_sample
+        else:
+            current_perc = 0
+        self.stat_expired_stale_perc = \
+            current_perc * 20 + stat_expired_stale_perc * 0.80
 
         self.last_time_cycle = last_time_cycle
 
