@@ -49,6 +49,7 @@ class Core(metaclass=Singleton):
             return NOT_EXISTS
         if value.expired:
             self._db.pop(key)
+            self._expiry_key.discard(key)
             return NOT_EXISTS
         return value
 
