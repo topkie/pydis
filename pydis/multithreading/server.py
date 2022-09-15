@@ -192,30 +192,28 @@ class Server(Core):
 
         last_time_cycle = start
         timelimit = TIME_PERC
-        timelimit_exit = False
+        exit = False
         total_expired = total_sample = 0
         expired = sample = 0
 
         # 只有存在关联了失效时长的键，才需要清理
         if num:
-            while not timelimit_exit and (
+            while not exit and (
                 sample == 0 or  # 第一次抽查
                 100 * expired / sample > ACCEPTABLE_STALE  # 本轮失效的键太多
             ):
                 expired = sample = 0
 
                 sample_keys = random_sample(expiry_keys, num)
-                while time() - start < timelimit:
+                while sample_keys and time() - start < timelimit:
                     key = sample_keys.pop()
                     if db[key].expired:
                         db.pop(key)
                         expiry_keys.discard(key)
                         expired += 1
                     sample += 1
-                    if not sample_keys:
-                        break
                 else:
-                    timelimit_exit = True
+                    exit = True
 
                 total_expired += expired
                 total_sample += sample
